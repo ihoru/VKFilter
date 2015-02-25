@@ -1,0 +1,15 @@
+{
+    "name": "ihoru/vkfilter",
+    "description": "Filter people from VK.com",
+    "require": {
+        "components/bootstrap": "dev-master"
+    },
+    "license": "Apache License 2.0",
+    "authors": [
+        {
+            "name": "Ihor Polyakov",
+            "email": "ihor.polyakov@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev"
+}
