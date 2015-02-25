@@ -208,10 +208,14 @@ function htmlspecialchars_recurcive($arr) {
 }
 
 ?>
+<!DOCTYPE html>
 <html>
 <head>
-	<meta charset="utf-8" />
 	<title>Vk.com Filter</title>
+	<meta charset="utf-8" />
+	<link media="all" rel="stylesheet" href="static/css/bootstrap.min.css" />
+	<link media="all" rel="stylesheet" href="static/css/common.css" />
+	<script src="static/js/bootstrap.min.js"></script>
 </head>
 <body>
 <h1>Vk.com Filter</h1>
@@ -244,7 +248,7 @@ function htmlspecialchars_recurcive($arr) {
 	Relations:
 	<?
 	foreach ($relations as $rel_id => $rel_title) {
-		echo '<label><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').'" /> - '.$rel_title.'</label>';
+		echo '<label><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').' /> - '.$rel_title.'</label>';
 	}
 	?>
 	<br />
