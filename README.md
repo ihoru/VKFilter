@@ -1,11 +1,11 @@
 # VKFilter
 Filter people from VK.com
 
-``
-# Run:
-
+## Installation
+```bash
 composer install
 
-grunt
+npm install
 
-``
+grunt
+```
