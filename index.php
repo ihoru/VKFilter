@@ -280,8 +280,8 @@ function htmlspecialchars_recurcive($arr) {
 	}
 	?>
 	<br />
-	<button name="reset" class="btn btn-warning">Reset</button>
 	<button class="btn btn-success">Search</button>
+	<button name="reset" class="btn btn-warning">Reset</button>
 </form>
 </div>
 </div>
