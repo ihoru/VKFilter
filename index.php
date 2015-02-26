@@ -36,9 +36,9 @@ foreach ($filter_default as $k => $v) {
 }
 $filter = htmlspecialchars_recurcive($filter);
 $cities = array(
-	'1' => 'Москва',
-	'72' => 'Краснодар',
-	'106' => 'Оренбург',
+	'1' => 'Moscow',
+	'72' => 'Krasnodar',
+	'106' => 'Orenburg',
 );
 $relations = array(
 	0 => 'none selected',
@@ -244,12 +244,12 @@ function htmlspecialchars_recurcive($arr) {
 		<input id="frm_age_require" name="filter[age_require]" type="checkbox" value="1" <?=($filter['age_require'] ? ' checked="checked"' : '')?> />
 	</div>
 	<div class="form-group">
-		<label for="frm_age_min">From:</label>
-		<input id="frm_age_min" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 40px" />
+		<label for="frm_age_min">from</label>
+		<input id="frm_age_min" class="form-control" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 40px" />
 	</div>
 	<div class="form-group">
-		<label for="frm_age_max">To:</label>
-		<input id="frm_age_max" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 40px" />
+		<label for="frm_age_max">to</label>
+		<input id="frm_age_max" class="form-control" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 40px" />
 	</div>
 	<div class="form-group">
 		<label for="frm_online">Online:</label>
@@ -273,7 +273,7 @@ function htmlspecialchars_recurcive($arr) {
 		</select>
 	</div>
 	<br />
-	Relationship status:
+	<strong>Relationship status:</strong>
 	<?
 	foreach ($relations as $rel_id => $rel_title) {
 		echo '<label class="checkbox-inline"><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').' /> '.$rel_title.'</label>';
@@ -285,10 +285,11 @@ function htmlspecialchars_recurcive($arr) {
 </form>
 </div>
 </div>
+
 <?
 if ($total_count) {
 	$count = count($filtered);
-	printf('<hr />Total: %d, girls: %d (%d%%), filtered: %d (%.2f%%)<br /><a href="%s" target="_blank">%s</a><hr />', $total_count, $girls_count, $girls_count / $total_count * 100, $count, $girls_count ? $count / $girls_count * 100 : 0, htmlspecialchars($url), htmlspecialchars($url));
+	printf('<hr /><p class="text-muted">Results for: <a href="%s" target="_blank">%s</a></p><br /><p class="text-muted">Total: %d, %s %d (%d%%), Filtered: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex = !$filter['sex'] ? "" : $filter['sex'] == 1 ? "Females:" : $filter['sex'] == 2 ? "Males:", $girls_count, $girls_count / $total_count * 100, $count, $girls_count ? $count / $girls_count * 100 : 0);
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
