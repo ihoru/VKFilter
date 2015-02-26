@@ -41,14 +41,14 @@ $cities = array(
 	'106' => 'Оренбург',
 );
 $relations = array(
-	0 => 'не указано',
-	1 => 'не женат/не замужем',
-	2 => 'есть друг/есть подруга',
-	3 => 'помолвлен/помолвлена',
-	4 => 'женат/замужем',
-	5 => 'всё сложно',
-	6 => 'в активном поиске',
-	7 => 'влюблён/влюблена',
+	0 => 'none selected',
+	1 => 'single',
+	2 => 'in a relationship',
+	3 => 'engaged',
+	4 => 'married',
+	5 => 'it\'s complicated',
+	6 => 'actively searching',
+	7 => 'in love',
 );
 
 $base_url = 'https://api.vk.com/method/';
@@ -218,43 +218,74 @@ function htmlspecialchars_recurcive($arr) {
 	<script src="static/js/bootstrap.min.js"></script>
 </head>
 <body>
-<h1>Vk.com Filter</h1>
-<form>
-	<label>Url: <input name="url" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="40" autocomplete="off" /></label>
+<div class="container">
+
+<nav class="navbar navbar-inverse">
+    <a class="navbar-brand" href="#">VK Filter</a>
+</nav>
+
+<div class="panel panel-default">
+    <div class="panel-body">
+	<form class="form-inline">
+	<div class="form-group">
+		<label>URL:</label>
+		<input name="url" class="form-control" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="40" autocomplete="off" placeholder="Enter URL" />
+	</div>
 	<?
 	if ($error) {
 		?>
-		<p style="color: red; font-weight: bold;">Wrong URL (i.e.: https://vk.com/wall-21090314_139626).</p>
-		<? if ($msg) { ?><p style="color: red; font-weight: bold;"><?=htmlspecialchars($msg)?></p><? } ?>
+		<div class="alert alert-danger" role="alert"><strong>Wrong URL</strong> (i.e.: https://vk.com/wall-21090314_139626).</div>
+		<? if ($msg) { ?><div class="alert alert-danger" role="alert"><?=htmlspecialchars($msg)?></div><? } ?>
 		<?
 	}
 	?>
-	<label>From: <input name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 40px" /></label>
-	<label>To: <input name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 40px" /></label>
-	<label>Require age: <input name="filter[age_require]" type="checkbox" value="1" <?=($filter['age_require'] ? ' checked="checked"' : '')?> /></label>
-	<label>Online: <input name="filter[online]" type="checkbox" value="1" <?=($filter['online'] ? ' checked="checked"' : '')?> /></label>
-	<label>City: <select name="filter[city]"><?
+	<div class="form-group">
+		<label>Require age:</label>
+		<input name="filter[age_require]" type="checkbox" value="1" <?=($filter['age_require'] ? ' checked="checked"' : '')?> />
+	</div>
+	<div class="form-group">
+		<label>From:</label> 
+		<input name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 40px" />
+	</div>
+	<div class="form-group">
+		<label>To:</label>
+		<input name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 40px" />
+	</div>
+	<div class="form-group">
+		<label>Online:</label>
+		<input name="filter[online]" type="checkbox" value="1" <?=($filter['online'] ? ' checked="checked"' : '')?> />
+	</div>
+	<div class="form-group">	
+		<label>City:</label>
+		<select name="filter[city]" class="form-control"><?
 		foreach ($cities as $city_id => $city_title) {
 			echo '<option value="'.$city_id.'"'.($city_id == $filter['city'] ? ' selected' : '').'>'.htmlspecialchars($city_title).'</option>'.PHP_EOL;
 		}
-	?></select></label>
-	<button>Search</button>
+	?>
+		</select>
+	</div>
+	<div class="form-control">
+		<label>Sex:</label>
+		<select name="filter[sex]" class="form-control">
+			<option value="0"<?=(!$filter['sex'] ? ' selected' : '')?>>Both</option>
+			<option value="1"<?=($filter['sex'] == 1 ? ' selected' : '')?>>Female</option>
+			<option value="2"<?=($filter['sex'] == 2 ? ' selected' : '')?>>Male</option>
+		</select>
+	</div>
+	<button class="btn btn-success">Search</button>
 	<br />
-	<label>Sex: <select name="filter[sex]">
-		<option value="0"<?=(!$filter['sex'] ? ' selected' : '')?>>Both</option>
-		<option value="1"<?=($filter['sex'] == 1 ? ' selected' : '')?>>Female</option>
-		<option value="2"<?=($filter['sex'] == 2 ? ' selected' : '')?>>Male</option>
-	</select></label>
-	Relations:
+	Relationship status:
 	<?
 	foreach ($relations as $rel_id => $rel_title) {
-		echo '<label><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').' /> - '.$rel_title.'</label>';
+		echo '<label class="checkbox-inline"><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').' /> '.$rel_title.'</label>';
 	}
 	?>
 	<br />
-	<button name="reset">Reset</button>
-	<button>Search</button>
+	<button name="reset" class="btn btn-warning">Reset</button>
+	<button class="btn btn-success">Search</button>
 </form>
+</div>
+</div>
 <?
 if ($total_count) {
 	$count = count($filtered);
@@ -278,5 +309,6 @@ if ($total_count) {
 	}
 }
 ?>
+</div>
 </body>
 </html>
