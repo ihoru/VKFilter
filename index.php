@@ -221,7 +221,7 @@ function htmlspecialchars_recurcive($arr) {
 <div class="container">
 
 <nav class="navbar navbar-inverse">
-    <a class="navbar-brand" href="#">VK Filter</a>
+    <a class="navbar-brand" href="?">VK Filter</a>
 </nav>
 
 <div class="panel panel-default">
