@@ -57,7 +57,7 @@ $version = '5.28';
 $filtered = array();
 $type = $error = false;
 $msg = '';
-$total_count = $girls_count = 0;
+$total_count = $sex_filtered_count = 0;
 if ($url) {
 	try {
 		if (!preg_match('#^(https?://vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Link does not match regexp.');
@@ -130,7 +130,7 @@ if ($url) {
 					if ($filter['sex'] && @$user['sex'] != $filter['sex']) {
 						continue;
 					}
-					++$girls_count;
+					++$sex_filtered_count;
 					if ($filter['city'] && @$user['city'] != $filter['city']) {
 						continue;
 					}
@@ -245,11 +245,11 @@ function htmlspecialchars_recurcive($arr) {
 	</div>
 	<div class="form-group">
 		<label for="frm_age_min">from</label>
-		<input id="frm_age_min" class="form-control" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 40px" />
+		<input id="frm_age_min" class="form-control" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 70px" />
 	</div>
 	<div class="form-group">
 		<label for="frm_age_max">to</label>
-		<input id="frm_age_max" class="form-control" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 40px" />
+		<input id="frm_age_max" class="form-control" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 70px" />
 	</div>
 	<div class="form-group">
 		<label for="frm_online">Online:</label>
@@ -289,15 +289,20 @@ function htmlspecialchars_recurcive($arr) {
 <?
 if ($total_count) {
 	$count = count($filtered);
-	printf('<hr /><p class="text-muted">Results for: <a href="%s" target="_blank">%s</a></p><br /><p class="text-muted">Total: %d, %s %d (%d%%), Filtered: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex = !$filter['sex'] ? "" : $filter['sex'] == 1 ? "Females:" : $filter['sex'] == 2 ? "Males:", $girls_count, $girls_count / $total_count * 100, $count, $girls_count ? $count / $girls_count * 100 : 0);
+	$sex_filter = '';
+	if ($filter['sex']) {
+		$sex_filter .= $filter['sex'] == 1 ? 'Females' : 'Males';
+		$sex_filter .= sprintf(': %d (%d%%), ', $sex_filtered_count, $sex_filtered_count / $total_count * 100);
+	}
+	printf('<hr /><p class="text-muted">Results for: <a href="%s" target="_blank">%s</a></p><br /><p class="text-muted">Total: %d, %sFiltered: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex_filter, $count, $sex_filtered_count ? $count / $sex_filtered_count * 100 : 0);
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
-		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: 500px;" /></a>
+		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: 300px;" /></a>
 			<?
 			if ($type == 'album' && isset($photos[$uid])) {
 				foreach ($photos[$uid] as $photo) {
-					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank"><img src="<?=get_image($photo, false)?>" style="max-height: 500px;" /></a><?
+					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank"><img src="<?=get_image($photo, false)?>" style="max-height: 300px;" /></a><?
 				}
 			}
 			?>
