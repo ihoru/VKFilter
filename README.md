@@ -1,9 +1,11 @@
 # VKFilter
 Filter people from VK.com
 
-## Installation
+## Установка
 ```bash
 npm install
+
+bower install
 
 grunt
 ```

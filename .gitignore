@@ -1,9 +1,10 @@
-composer.phar
-vendor/
 .idea/
 logs/
+composer.phar
 composer.lock
+vendor/
 node_modules/
+bower_components/
 static/
 dist/
 

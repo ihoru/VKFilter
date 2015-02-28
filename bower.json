@@ -1,0 +1,23 @@
+{
+  "name": "VKFilter",
+  "version": "0.2.2",
+  "homepage": "https://github.com/ihoru/VKFilter",
+  "authors": [
+    "Ihor Polyakov <ihor.polyakov@gmail.com>"
+  ],
+  "description": "Filter people from VK.com",
+  "keywords": [
+    "vk",
+    "filter"
+  ],
+  "license": "Apache License 2.0",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "vendor",
+    "dist",
+    "static"
+  ]
+}

@@ -8,6 +8,18 @@ module.exports = function(grunt) {
         'static/'
       ]
     },
+    copy: {
+      static: {
+        files: [
+          {
+            expand: true,
+            cwd: 'bower_components/jquery-mousewheel/',
+            src: ['jquery.mousewheel.min.js'],
+            dest: 'static/js/'
+          }
+        ]
+      }
+    },
     less: {
       static: {
         files: {
@@ -18,8 +30,9 @@ module.exports = function(grunt) {
   });
 
   grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-less');
 
-  grunt.registerTask('default', ['less']);
+  grunt.registerTask('default', ['copy', 'less']);
 
 };

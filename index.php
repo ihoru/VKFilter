@@ -40,10 +40,8 @@ foreach ($filter_default as $k => $v) {
 	} elseif (is_array($v)) {
 		$filter[$k] = isset($filter[$k]) ? (array)($filter[$k]) : array();
 	}
-	if ($k == 'sex') {
-		$filter[$k] = max(0, min(2, $filter[$k]));
-	}
 }
+$filter['sex'] = max(0, min(2, $filter['sex']));
 $filter['height'] = max(min($filter['height'], 2000), 100);
 setcookie('filter', json_encode($filter), strtotime('+1 month'));
 $filter = htmlspecialchars_recursive($filter);
@@ -68,7 +66,10 @@ $heights = array(
 	'100' => 'маленькие (100)',
 	'300' => 'средние (300)',
 	'600' => 'большие (600)',
+	'1000' => 'огромные (1000)',
 );
+$zoom_max_height = 900;
+$zoom_max_width = 900;
 
 $base_url = 'https://api.vk.com/method/';
 $version = '5.28';
@@ -88,14 +89,17 @@ if ($url) {
 			throw new Exception('Ссылка неизвестного типа!');
 		}
 		$offset = 0;
-		$count = $debug ? 100 : 1000;
+		$count = $debug && $type != 'album' ? 100 : 1000;
 		$user_ids = array();
 		$photos = array();
 		$continue_loop = false;
 		do {
 			if ($type == 'album') {
 				$json = json_decode(file_get_contents(sprintf('%sphotos.get?owner_id=%d&album_id=%d&rev=1&extended=0&offset=%d&count=%d&version=%.2f', $base_url, $owner_id, $item_id, $offset, $count, $version)), true);
-				if (!$json || !$json['response']) continue;
+				if (!$json || !$json['response']) {
+					@++$stats['error_photos_get'];
+					continue;
+				}
 				foreach ($json['response'] as $item) {
 					if (!isset($item['user_id'])) {
 						continue;
@@ -117,7 +121,10 @@ if ($url) {
 				$continue_loop = count($json['response']) == $count;
 			} elseif ($type == 'post') {
 				$json = json_decode(file_get_contents(sprintf('%slikes.getList?type=%s&owner_id=%d&item_id=%d&filter=likes&friends_only=0&extended=0&offset=%d&count=%d&version=%.2f', $base_url, $type, $owner_id, $item_id, $offset, $count, $version)), true);
-				if (!$json || !$json['response']) continue;
+				if (!$json || !$json['response']) {
+					@++$stats['error_likes_get'];
+					continue;
+				}
 				foreach ($json['response']['users'] as $uid) {
 					$user_ids[] = $uid;
 					++$total_count;
@@ -146,6 +153,10 @@ if ($url) {
 				$json_users = json_decode($data, true);
 				curl_close($ch);
 				$users = (array)$json_users['response'];
+				if (!$users) {
+					@++$stats['error_users_get'];
+					continue;
+				}
 				$total_count += count($users);
 				foreach ($users as $user) {
 					// banned
@@ -243,6 +254,9 @@ function htmlspecialchars_recursive($arr) {
 }
 
 $stats_legend = array(
+	'error_photos_get' => 'Ошибка: получение списка фотографий',
+	'error_likes_get' => 'Ошибка: получение спика лайкнувших',
+	'error_users_get' => 'Ошибка: получение списка пользователей',
 	'blacklisted' => 'В черном списке',
 	'avatar' => 'Нет аватара',
 	'sex' => 'Пол',
@@ -264,6 +278,15 @@ $stats_legend = array(
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
 	<link media="all" rel="stylesheet" href="static/css/common.css" />
+	<style>
+		.items .item {
+			max-height: <?=($filter['height'] + 114)?>px;
+		}
+		#fullImage {
+			max-height: <?=$zoom_max_height?>px;
+			max-width: <?=$zoom_max_width?>px;
+		}
+	</style>
 </head>
 <body>
 <div class="container">
@@ -355,20 +378,20 @@ $stats_legend = array(
 			}
 		?></select>
 	</div>
-	<? if ($debug) { ?><input type="hidden" name="debug" /><? } ?>
+	<? if ($debug || isset($_COOKIE['debug'])) { ?>
+	<div class="form-group">
+		<label for="frm_debug">Debug:</label>
+		<input id="frm_debug" name="debug" type="checkbox" value="1" <?=($debug ? ' checked="checked"' : '')?> />
+	</div>
+	<? } ?>
 
 	</form>
 </div>
 </div>
 
 <?
-if ($total_count) {
-	$count = count($filtered);
-	$sex_filter = $filter['sex'] ? ($filter['sex'] == 1 ? 'девушки' : 'парни') : 'прошли базовые проверки';
-	?>
-	<hr />
-	<p class="text-muted">Результаты для: <a href="<?=htmlspecialchars($url)?>" target="_blank"><?=htmlspecialchars($url)?></a></p>
-	<p class="text-muted">Всего: <?=$total_count?>, <?=$sex_filter?>: <?=($base_filtered_count.' ('.floor($base_filtered_count / $total_count * 100).'%)')?>, после фильтра: <?=($count.' ('.round($base_filtered_count ? $count / $base_filtered_count * 100 : 0, 2).'%)')?> - <a href="#" data-toggle="modal" data-target="#stats">статистика</a>.</p>
+if ($stats) {
+	?><p><a href="#" data-toggle="modal" data-target="#stats">статистика</a></p>
 	<div id="stats" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 		<div class="modal-dialog">
 			<div class="modal-content">
@@ -392,6 +415,15 @@ if ($total_count) {
 			</div>
 		</div>
 	</div>
+	<?
+}
+if ($total_count) {
+	$count = count($filtered);
+	$sex_filter = $filter['sex'] ? ($filter['sex'] == 1 ? 'девушки' : 'парни') : 'прошли базовые проверки';
+	?>
+	<hr />
+	<p class="text-muted">Результаты для: <a href="<?=htmlspecialchars($url)?>" target="_blank"><?=htmlspecialchars($url)?></a></p>
+	<p class="text-muted">Всего: <?=$total_count?>, <?=$sex_filter?>: <?=($base_filtered_count.' ('.floor($base_filtered_count / $total_count * 100).'%)')?>, после фильтра: <?=($count.' ('.round($base_filtered_count ? $count / $base_filtered_count * 100 : 0, 2).'%)')?>.</p>
 	<hr />
 	<div class="items">
 	<?
@@ -399,15 +431,13 @@ if ($total_count) {
 		$uid = $user['uid'];
 		?>
 		<div class="item">
-		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: <?=$filter['height']?>px;" /></a>
-			<?
+		<pre><a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: <?=$filter['height']?>px;" /></a><?
 			if ($type == 'album' && isset($photos[$uid])) {
 				foreach ($photos[$uid] as $photo) {
-					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank"><img src="<?=get_image($photo, false)?>" style="max-height: <?=$filter['height']?>px;" /></a><?
+					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank" title="<?=htmlspecialchars($photo['text'].date(' - Y-m-d H:i', $photo['created']))?>"><img src="<?=get_image($photo, false)?>" style="max-height: <?=$filter['height']?>px;" data-height="<?=$photo['height']?>" data-width="<?=$photo['width']?>" /></a><?
 				}
 			}
-			?>
-		<br />
+		?></pre><br />
 		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' лет)' : '').($user['online'] ? ' - online' : ($user['last_seen'] && $user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '').(!$filter['sex'] ? ($user['sex'] == '1' ? ' - девушка' : ($user['sex'] == '2' ? ' - парень' : '')) : '')?>
 		<?=(@$user['status'] ? '<br />'.htmlspecialchars($user['status']) : '')?>
 		<hr />
@@ -424,26 +454,46 @@ if ($total_count) {
 <a href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<!--<script src="static/js/jquery.mousewheel.min.js"></script>-->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 <script>
 $(window).load(function() {
+	<? if ($filter['height'] < $zoom_max_height) { ?>
 	var fullImage = $('#fullImage');
+	var calcNewPos = function(e, width, height) {
+		var Y, X;
+		if (!width || !height) {
+			Y = e.pageY - 200;
+			X = e.pageX + 30;
+		} else {
+			width = Math.min(width, <?=$zoom_max_height?>);
+			height = Math.min(height, <?=$zoom_max_width?>);
+			Y = Math.max(0, Math.round(e.pageY - height / 2));
+			X = e.pageX + 30;
+			if (X + width > e.view.innerWidth) {
+				X = Math.max(0, e.pageX - 30 - width);
+			}
+		}
+		return {
+			top: Y + 'px',
+			left: X + 'px'
+		}
+	};
 	$('.items img').mouseover(function(e) {
 		var el = $(e.currentTarget);
 		fullImage.attr('src', el.attr('src'));
-		fullImage.css({
-			top: (e.pageY - 200) + 'px',
-			left: (e.pageX + 30) + 'px'
-		});
+		fullImage.css(calcNewPos(e, el.data('width'), el.data('height')));
 		fullImage.removeClass('hide');
 	}).mousemove(function(e) {
-		fullImage.css({
-			top: (e.pageY - 200) + 'px',
-			left: (e.pageX + 30) + 'px'
-		});
+		var el = $(e.currentTarget);
+		fullImage.css(calcNewPos(e, el.data('width'), el.data('height')));
 	}).mouseout(function(e) {
 		fullImage.addClass('hide');
 	});
+	<? } ?>
+//	$('.items .item pre').mousewheel(function(event) {
+//		console.log(event.deltaX, event.deltaY, event.deltaFactor);
+//	});
 });
 </script>
 </html>

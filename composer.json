@@ -1,6 +1,7 @@
 {
     "name": "ihoru/vkfilter",
     "description": "Filter people from VK.com",
+    "version": "0.2.2",
     "require": {
         "components/bootstrap": "dev-master"
     },
