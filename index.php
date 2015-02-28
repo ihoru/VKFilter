@@ -15,13 +15,14 @@ header('Content-type: text/html; charset=utf8');
 $filter_default = array(
 	'city' => 1,
 	'sex' => 1,
-	'age_min' => 18,
-	'age_max' => 28,
+	'age_min' => 0,
+	'age_max' => 0,
 	'age_require' => false,
 	'online' => false,
 	'relations' => array(),
 );
 $url = isset($_REQUEST['url']) ? strval($_REQUEST['url']) : '';
+$debug = isset($_REQUEST['debug']);
 $filter = isset($_REQUEST['filter']) && !isset($_REQUEST['reset']) ? $_REQUEST['filter'] : array();
 $filter = array_merge($filter_default, $filter);
 foreach ($filter_default as $k => $v) {
@@ -36,19 +37,20 @@ foreach ($filter_default as $k => $v) {
 }
 $filter = htmlspecialchars_recurcive($filter);
 $cities = array(
-	'1' => 'Moscow',
-	'72' => 'Krasnodar',
-	'106' => 'Orenburg',
+	'0' => 'любой',
+	'1' => 'Москва',
+	'72' => 'Краснодар',
+	'106' => 'Оренбург',
 );
 $relations = array(
-	0 => 'none selected',
-	1 => 'single',
-	6 => 'actively searching',
-	5 => 'it\'s complicated',
-	2 => 'in a relationship',
-	7 => 'in love',
-	3 => 'engaged',
-	4 => 'married',
+	0 => 'не указано',
+	1 => 'свободен(а)',
+	6 => 'в активном поиске',
+	5 => 'всё сложно',
+	2 => 'есть пара',
+	7 => 'влюблён(а)',
+	3 => 'помолвлен(а)',
+	4 => 'в браке',
 );
 
 $base_url = 'https://api.vk.com/method/';
@@ -57,7 +59,7 @@ $version = '5.28';
 $filtered = array();
 $type = $error = false;
 $msg = '';
-$total_count = $sex_filtered_count = 0;
+$total_count = $base_filtered_count = 0;
 if ($url) {
 	try {
 		if (!preg_match('#^(https?://vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Link does not match regexp.');
@@ -66,17 +68,16 @@ if ($url) {
 		} elseif ($type == 'wall') {
 			$type = 'post';
 		} else {
-			throw new Exception('Unknown link type');
+			throw new Exception('Ссылка неизвестного типа!');
 		}
 		$offset = 0;
-		$count = 1000;
+		$count = $debug ? 100 : 1000;
 		$user_ids = array();
 		$photos = array();
 		$continue_loop = false;
 		do {
 			if ($type == 'album') {
 				$json = json_decode(file_get_contents(sprintf('%sphotos.get?owner_id=%d&album_id=%d&rev=1&extended=0&offset=%d&count=%d&version=%f', $base_url, $owner_id, $item_id, $offset, $count, $version)), true);
-				var_dump($json);exit;//TODO:i.polyakov:remove me
 				if (!$json || !$json['response']) continue;
 				foreach ($json['response'] as $item) {
 					if (!isset($item['user_id'])) {
@@ -93,7 +94,9 @@ if ($url) {
 					$photos[$uid][] = $item;
 				}
 				$offset += $count;
-//				continue;//TODO:
+				if ($debug) {
+					continue;
+				}
 				$continue_loop = count($json['response']) == $count;
 			} elseif ($type == 'post') {
 				$json = json_decode(file_get_contents(sprintf('%slikes.getList?type=%s&owner_id=%d&item_id=%d&filter=likes&friends_only=0&extended=0&offset=%d&count=%d&version=%f', $base_url, $type, $owner_id, $item_id, $offset, $count, $version)), true);
@@ -103,7 +106,9 @@ if ($url) {
 				}
 				$total_count = $json['response']['count'];
 				$offset += $count;
-//				continue;//TODO:
+				if ($debug) {
+					continue;
+				}
 				$continue_loop = $total_count > $offset;
 			}
 		} while ($continue_loop);
@@ -128,10 +133,16 @@ if ($url) {
 					if (@$user['blacklisted']) {
 						continue;
 					}
+					// empty avatar
+					foreach ($user as $k => $v) {
+						if (strpos($k, 'photo') !== false && strpos($v, 'camera') !== false) {
+							continue 2;
+						}
+					}
 					if ($filter['sex'] && @$user['sex'] != $filter['sex']) {
 						continue;
 					}
-					++$sex_filtered_count;
+					++$base_filtered_count;
 					if ($filter['city'] && @$user['city'] != $filter['city']) {
 						continue;
 					}
@@ -150,15 +161,8 @@ if ($url) {
 					if ($filter['relations'] && !in_array(intval(@$user['relation']), $filter['relations'])) {
 						continue;
 					}
-					// empty avatar
-					foreach ($user as $k => $v) {
-						if (strpos($k, 'photo') !== false && strpos($v, 'camera') !== false) {
-							continue 2;
-						}
-					}
 					$filtered[] = $user;
 				}
-//				break;//TODO:
 			}
 		}
 	} catch (Exception $e) {
@@ -186,15 +190,15 @@ function get_image($item, $ava = true) {
 
 function get_time_diff($time) {
 	$diff = time() - $time;
-	if ($diff < 60) return 'less than minute';
-	if ($diff < 60 * 10) return 'less than 10 minutes';
-	if ($diff < 60 * 60) return 'less than hour';
-	if ($diff < 60 * 60 * 12) return 'less than 12 hours';
-	if ($diff < 60 * 60 * 24) return 'less than day';
-	if ($diff < 60 * 60 * 24 * 3) return 'less than 3 days';
-	if ($diff < 60 * 60 * 24 * 7) return 'less than week';
-	if ($diff < 60 * 60 * 24 * 30) return 'less than month';
-	return '';
+	if ($diff < 60) return 'меньше минуты';
+	if ($diff < 60 * 10) return 'меньше 10 минут';
+	if ($diff < 60 * 60) return 'меньше часа';
+	if ($diff < 60 * 60 * 12) return 'меньше 12 часов';
+	if ($diff < 60 * 60 * 24) return 'меньше суток';
+	if ($diff < 60 * 60 * 24 * 3) return 'меньше 3 дней';
+	if ($diff < 60 * 60 * 24 * 7) return 'меньше недели';
+	if ($diff < 60 * 60 * 24 * 30) return 'меньше месяца';
+	return 'больше месяца';
 }
 
 function htmlspecialchars_recurcive($arr) {
@@ -214,75 +218,87 @@ function htmlspecialchars_recurcive($arr) {
 <head>
 	<title>Vk.com Filter</title>
 	<meta charset="utf-8" />
-	<link media="all" rel="stylesheet" href="static/css/bootstrap.min.css" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
 	<link media="all" rel="stylesheet" href="static/css/common.css" />
-	<script src="static/js/bootstrap.min.js"></script>
 </head>
 <body>
 <div class="container">
 
 <nav class="navbar navbar-inverse">
-    <a class="navbar-brand" href="?">VK Filter</a>
+	<a class="navbar-brand" href="?" title="На главную">VKFilter - фильтр пользователей соц сети VK.com</a>
+	<a class="navbar-brand" href="?page=howto" class="hide">Как пользоваться?</a>
 </nav>
 
+<div id="firstVisitBlock" class="alert alert-info hide" role="info">
+	<button type="button" class="close" data-dismiss="info" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
+	<strong>Короткое описание проекта!</strong>
+</div>
+
+<? if ($debug) { ?>
+<div class="alert alert-warning" role="warning">
+	<strong>Включен режим отладки!</strong>
+</div>
+<? } ?>
+
 <div class="panel panel-default">
-    <div class="panel-body">
+	<div class="panel-body">
+	<? if ($error) { ?>
+		<div class="alert alert-danger" role="alert"><strong>Ошибка!</strong><? if ($msg) { ?><br /><?=htmlspecialchars($msg)?><? } ?></div>
+	<? } ?>
 	<form class="form-inline">
 	<div class="form-group">
 		<label for="frm_url">URL:</label>
-		<input id="frm_url" name="url" class="form-control" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="40" autocomplete="off" placeholder="Enter URL" />
+		<input id="frm_url" name="url" class="form-control" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="40" autocomplete="off" placeholder="Введите URL ссылки" />
 	</div>
-	<?
-	if ($error) {
-		?>
-		<div class="alert alert-danger" role="alert"><strong>Wrong URL</strong> (i.e.: https://vk.com/wall-21090314_139626).</div>
-		<? if ($msg) { ?><div class="alert alert-danger" role="alert"><?=htmlspecialchars($msg)?></div><? } ?>
-		<?
-	}
-	?>
+	Возраст
 	<div class="form-group">
-		<label for="frm_age_require">Require age:</label>
-		<input id="frm_age_require" name="filter[age_require]" type="checkbox" value="1" <?=($filter['age_require'] ? ' checked="checked"' : '')?> />
-	</div>
-	<div class="form-group">
-		<label for="frm_age_min">from</label>
+		<label for="frm_age_min">от</label>
 		<input id="frm_age_min" class="form-control" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 70px" />
 	</div>
 	<div class="form-group">
-		<label for="frm_age_max">to</label>
+		<label for="frm_age_max">до</label>
 		<input id="frm_age_max" class="form-control" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 70px" />
 	</div>
+	лет
 	<div class="form-group">
-		<label for="frm_online">Online:</label>
-		<input id="frm_online" name="filter[online]" type="checkbox" value="1" <?=($filter['online'] ? ' checked="checked"' : '')?> />
+		<label for="frm_age_require">обязательно</label>
+		<input id="frm_age_require" name="filter[age_require]" type="checkbox" value="1" <?=($filter['age_require'] ? ' checked="checked"' : '')?> />
 	</div>
-	<div class="form-group">	
-		<label for="frm_city">City:</label>
+	.
+	<br />
+	<div class="form-group">
+		<label for="frm_city">Город:</label>
 		<select id="frm_city" name="filter[city]" class="form-control"><?
 		foreach ($cities as $city_id => $city_title) {
 			echo '<option value="'.$city_id.'"'.($city_id == $filter['city'] ? ' selected' : '').'>'.htmlspecialchars($city_title).'</option>'.PHP_EOL;
 		}
-	?>
+		?></select>
+	</div>
+	<div class="form-group">
+		<label for="frm_sex">Пол:</label>
+		<select id="frm_sex" name="filter[sex]" class="form-control">
+			<option value="0"<?=(!$filter['sex'] ? ' selected' : '')?>>Оба</option>
+			<option value="1"<?=($filter['sex'] == 1 ? ' selected' : '')?>>Девушки</option>
+			<option value="2"<?=($filter['sex'] == 2 ? ' selected' : '')?>>Парни</option>
 		</select>
 	</div>
 	<div class="form-group">
-		<label for="frm_sex">Sex:</label>
-		<select id="frm_sex" name="filter[sex]" class="form-control">
-			<option value="0"<?=(!$filter['sex'] ? ' selected' : '')?>>Both</option>
-			<option value="1"<?=($filter['sex'] == 1 ? ' selected' : '')?>>Female</option>
-			<option value="2"<?=($filter['sex'] == 2 ? ' selected' : '')?>>Male</option>
-		</select>
+		<label for="frm_online">Онлайн:</label>
+		<input id="frm_online" name="filter[online]" type="checkbox" value="1" <?=($filter['online'] ? ' checked="checked"' : '')?> />
 	</div>
 	<br />
-	<strong>Relationship status:</strong>
+	<strong title="семейное положение">СП:</strong>
 	<?
 	foreach ($relations as $rel_id => $rel_title) {
 		echo '<label class="checkbox-inline"><input name="filter[relations][]" type="checkbox" value="'.$rel_id.'" '.($filter['relations'] && in_array($rel_id, $filter['relations']) ? ' checked="checked"' : '').' /> '.$rel_title.'</label>';
 	}
 	?>
 	<br />
-	<button class="btn btn-success">Search</button>
-	<button name="reset" class="btn btn-warning">Reset</button>
+	<button class="btn btn-success">Поиск</button>
+	<button name="reset" class="btn btn-warning">Сбросить фильтр</button>
 </form>
 </div>
 </div>
@@ -290,12 +306,9 @@ function htmlspecialchars_recurcive($arr) {
 <?
 if ($total_count) {
 	$count = count($filtered);
-	$sex_filter = '';
-	if ($filter['sex']) {
-		$sex_filter .= $filter['sex'] == 1 ? 'Females' : 'Males';
-		$sex_filter .= sprintf(': %d (%d%%), ', $sex_filtered_count, $sex_filtered_count / $total_count * 100);
-	}
-	printf('<hr /><p class="text-muted">Results for: <a href="%s" target="_blank">%s</a></p><br /><p class="text-muted">Total: %d, %sFiltered: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex_filter, $count, $sex_filtered_count ? $count / $sex_filtered_count * 100 : 0);
+	$sex_filter = $filter['sex'] ? ($filter['sex'] == 1 ? 'девушки' : 'парни') : 'прошли базовые проверки';
+	$sex_filter .= sprintf(': %d (%d%%), ', $base_filtered_count, $base_filtered_count / $total_count * 100);
+	printf('<hr /><p class="text-muted">Результаты для: <a href="%s" target="_blank">%s</a></p><p class="text-muted">Всего: %d, %sпосле фильтра: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex_filter, $count, $base_filtered_count ? $count / $base_filtered_count * 100 : 0);
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
@@ -308,7 +321,7 @@ if ($total_count) {
 			}
 			?>
 		<br />
-		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' years)' : '').($user['online'] ? ' - online' : ($user['last_seen'] && $user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '')?>
+		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' лет)' : '').($user['online'] ? ' - online' : ($user['last_seen'] && $user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '').(!$filter['sex'] ? ($user['sex'] == '1' ? ' - девушка' : ($user['sex'] == '2' ? ' - парень' : '')) : '')?>
 		<?=(@$user['status'] ? '<br />'.htmlspecialchars($user['status']) : '')?>
 		<hr />
 	<?
@@ -316,6 +329,8 @@ if ($total_count) {
 }
 ?>
 </div>
-<a href="https://github.com/ihoru/VKFilter/fork" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
+<a href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 </html>

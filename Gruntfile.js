@@ -8,24 +8,6 @@ module.exports = function(grunt) {
         'static/'
       ]
     },
-    copy: {
-      static: {
-        files: [
-          {
-            expand: true,
-            cwd: 'vendor/components/bootstrap/js/',
-            src: ['bootstrap.min.js'],
-            dest: 'static/js/'
-          },
-          {
-            expand: true,
-            cwd: 'vendor/components/bootstrap/css/',
-            src: ['bootstrap.min.css'],
-            dest: 'static/css/'
-          }
-        ]
-      }
-    },
     less: {
       static: {
         files: {
@@ -35,10 +17,9 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-less');
 
-  grunt.registerTask('default', ['copy', 'less']);
+  grunt.registerTask('default', ['less']);
 
 };

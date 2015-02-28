@@ -5,5 +5,5 @@ logs/
 composer.lock
 node_modules/
 static/
-data
+dist/
 

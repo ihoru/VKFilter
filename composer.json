@@ -9,6 +9,10 @@
         {
             "name": "Ihor Polyakov",
             "email": "ihor.polyakov@gmail.com"
+        },
+        {
+          "name": "Ruslan Almukhametov",
+          "email": "bigruslan@gmail.com"
         }
     ],
     "minimum-stability": "dev"
