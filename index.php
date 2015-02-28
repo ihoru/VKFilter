@@ -13,8 +13,8 @@ header('Content-type: text/html; charset=utf8');
  * ** https://vk.com/iwantyou?z=album-43776215_208738214
 */
 $filter_default = array(
-	'city' => 1,
-	'sex' => 1,
+	'city' => 0,
+	'sex' => 0,
 	'age_min' => 0,
 	'age_max' => 0,
 	'age_require' => false,
@@ -23,13 +23,19 @@ $filter_default = array(
 );
 $url = isset($_REQUEST['url']) ? strval($_REQUEST['url']) : '';
 $debug = isset($_REQUEST['debug']);
-$filter = isset($_REQUEST['filter']) && !isset($_REQUEST['reset']) ? $_REQUEST['filter'] : array();
-$filter = array_merge($filter_default, $filter);
+$_filter = isset($_REQUEST['filter']) && !isset($_REQUEST['reset']) ? $_REQUEST['filter'] : array();
+$filter = array_merge($filter_default, $_filter);
+if (!$_filter && !isset($_REQUEST['reset'])) {
+	$filter['city'] = 1; // Москва по умолчанию
+	$filter['sex'] = 1; // Девушки по умолчанию
+}
 foreach ($filter_default as $k => $v) {
 	if (is_numeric($v)) {
 		$filter[$k] = intval($filter[$k]);
 	} elseif (is_bool($v)) {
 		$filter[$k] = (bool)($filter[$k]);
+	} elseif (is_array($v)) {
+		$filter[$k] = (array)($filter[$k]);
 	}
 	if ($k == 'sex') {
 		$filter[$k] = max(0, min(2, $filter[$k]));
@@ -148,29 +154,29 @@ if ($url) {
 					}
 					++$base_filtered_count;
 					if ($filter['city'] == -1 && @$user['city']) {
-						++$stats['city'];
+						@++$stats['city'];
 						continue;
 					} elseif ($filter['city'] && @$user['city'] != $filter['city']) {
-						++$stats['city'];
+						@++$stats['city'];
 						continue;
 					}
 					@list($d, $m, $y) = explode('.', @$user['bdate']);
 					$age = $y ? date('Y') - $y : 0;
 					$user['age'] = $age;
 					if ($filter['age_require'] && !$age) {
-						++$stats['age_require'];
+						@++$stats['age_require'];
 						continue;
 					}
 					if ($age && ($filter['age_min'] && $age < $filter['age_min'] || $filter['age_max'] && $age >= $filter['age_max'])) {
-						++$stats['age'];
+						@++$stats['age'];
 						continue;
 					}
 					if ($filter['online'] && !@$user['online']) {
-						++$stats['online'];
+						@++$stats['online'];
 						continue;
 					}
 					if ($filter['relations'] && !in_array(intval(@$user['relation']), $filter['relations'])) {
-						++$stats['relations'];
+						@++$stats['relations'];
 						continue;
 					}
 					$filtered[] = $user;
@@ -252,7 +258,7 @@ $stats_legend = array(
 
 <nav class="navbar navbar-inverse">
 	<a class="navbar-brand" href="?" title="На главную">VKFilter - фильтр пользователей соц сети VK.com</a>
-	<a class="navbar-brand" href="?page=howto" class="hide">Как пользоваться?</a>
+	<a class="navbar-brand hide" href="?page=howto">Как пользоваться?</a>
 </nav>
 
 <div id="firstVisitBlock" class="alert alert-info hide" role="info">
@@ -271,19 +277,20 @@ $stats_legend = array(
 	<? if ($error) { ?>
 		<div class="alert alert-danger" role="alert"><strong>Ошибка!</strong><? if ($msg) { ?><br /><?=htmlspecialchars($msg)?><? } ?></div>
 	<? } ?>
-	<form class="form-inline">
+	<form id="filter_frm" class="form-inline" method="get" onsubmit="$('#loading').removeClass('invisible'); return true;">
 	<div class="form-group">
 		<label for="frm_url">URL:</label>
-		<input id="frm_url" name="url" class="form-control" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="40" autocomplete="off" placeholder="Введите URL ссылки" />
+		<input id="frm_url" name="url" class="form-control input-lg" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="100" autocomplete="off" placeholder="Введите URL ссылки" />
 	</div>
+	<br />
 	Возраст
 	<div class="form-group">
 		<label for="frm_age_min">от</label>
-		<input id="frm_age_min" class="form-control" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 70px" />
+		<input id="frm_age_min" class="form-control input-sm" name="filter[age_min]" type="number" value="<?=$filter['age_min']?>" style="width: 70px" />
 	</div>
 	<div class="form-group">
 		<label for="frm_age_max">до</label>
-		<input id="frm_age_max" class="form-control" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 70px" />
+		<input id="frm_age_max" class="form-control input-sm" name="filter[age_max]" type="number" value="<?=$filter['age_max']?>" style="width: 70px" />
 	</div>
 	лет
 	<div class="form-group">
@@ -294,7 +301,7 @@ $stats_legend = array(
 	<br />
 	<div class="form-group">
 		<label for="frm_city">Город:</label>
-		<select id="frm_city" name="filter[city]" class="form-control"><?
+		<select id="frm_city" name="filter[city]" class="form-control input-sm"><?
 		foreach ($cities as $city_id => $city_title) {
 			echo '<option value="'.$city_id.'"'.($city_id == $filter['city'] ? ' selected' : '').'>'.htmlspecialchars($city_title).'</option>'.PHP_EOL;
 		}
@@ -302,7 +309,7 @@ $stats_legend = array(
 	</div>
 	<div class="form-group">
 		<label for="frm_sex">Пол:</label>
-		<select id="frm_sex" name="filter[sex]" class="form-control">
+		<select id="frm_sex" name="filter[sex]" class="form-control input-sm">
 			<option value="0"<?=(!$filter['sex'] ? ' selected' : '')?>>Оба</option>
 			<option value="1"<?=($filter['sex'] == 1 ? ' selected' : '')?>>Девушки</option>
 			<option value="2"<?=($filter['sex'] == 2 ? ' selected' : '')?>>Парни</option>
@@ -320,9 +327,14 @@ $stats_legend = array(
 	}
 	?>
 	<br />
-	<button class="btn btn-success">Поиск</button>
-	<button name="reset" class="btn btn-warning">Сбросить фильтр</button>
-</form>
+	<button class="btn btn-success">
+		Поиск
+		<span id="loading" class="invisible glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
+	</button>
+	<button name="reset" class="btn btn-warning">Сбросить</button>
+	<? if ($debug) { ?><input type="hidden" name="debug" /><? } ?>
+
+	</form>
 </div>
 </div>
 
@@ -330,7 +342,6 @@ $stats_legend = array(
 if ($total_count) {
 	$count = count($filtered);
 	$sex_filter = $filter['sex'] ? ($filter['sex'] == 1 ? 'девушки' : 'парни') : 'прошли базовые проверки';
-	$sex_filter .= sprintf(': %d (%d%%), ', $base_filtered_count, $base_filtered_count / $total_count * 100);
 	?>
 	<hr />
 	<p class="text-muted">Результаты для: <a href="<?=htmlspecialchars($url)?>" target="_blank"><?=htmlspecialchars($url)?></a></p>
