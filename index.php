@@ -35,9 +35,10 @@ foreach ($filter_default as $k => $v) {
 		$filter[$k] = max(0, min(2, $filter[$k]));
 	}
 }
-$filter = htmlspecialchars_recurcive($filter);
+$filter = htmlspecialchars_recursive($filter);
 $cities = array(
 	'0' => 'любой',
+	'-1' => 'не указано',
 	'1' => 'Москва',
 	'72' => 'Краснодар',
 	'106' => 'Оренбург',
@@ -56,7 +57,7 @@ $relations = array(
 $base_url = 'https://api.vk.com/method/';
 $version = '5.28';
 
-$filtered = array();
+$filtered = $stats = array();
 $type = $error = false;
 $msg = '';
 $total_count = $base_filtered_count = 0;
@@ -77,7 +78,7 @@ if ($url) {
 		$continue_loop = false;
 		do {
 			if ($type == 'album') {
-				$json = json_decode(file_get_contents(sprintf('%sphotos.get?owner_id=%d&album_id=%d&rev=1&extended=0&offset=%d&count=%d&version=%f', $base_url, $owner_id, $item_id, $offset, $count, $version)), true);
+				$json = json_decode(file_get_contents(sprintf('%sphotos.get?owner_id=%d&album_id=%d&rev=1&extended=0&offset=%d&count=%d&version=%.2f', $base_url, $owner_id, $item_id, $offset, $count, $version)), true);
 				if (!$json || !$json['response']) continue;
 				foreach ($json['response'] as $item) {
 					if (!isset($item['user_id'])) {
@@ -99,7 +100,7 @@ if ($url) {
 				}
 				$continue_loop = count($json['response']) == $count;
 			} elseif ($type == 'post') {
-				$json = json_decode(file_get_contents(sprintf('%slikes.getList?type=%s&owner_id=%d&item_id=%d&filter=likes&friends_only=0&extended=0&offset=%d&count=%d&version=%f', $base_url, $type, $owner_id, $item_id, $offset, $count, $version)), true);
+				$json = json_decode(file_get_contents(sprintf('%slikes.getList?type=%s&owner_id=%d&item_id=%d&filter=likes&friends_only=0&extended=0&offset=%d&count=%d&version=%.2f', $base_url, $type, $owner_id, $item_id, $offset, $count, $version)), true);
 				if (!$json || !$json['response']) continue;
 				foreach ($json['response']['users'] as $uid) {
 					$user_ids[] = $uid;
@@ -131,34 +132,45 @@ if ($url) {
 				foreach ($users as $user) {
 					// banned
 					if (@$user['blacklisted']) {
+						@++$stats['blacklisted'];
 						continue;
 					}
 					// empty avatar
 					foreach ($user as $k => $v) {
 						if (strpos($k, 'photo') !== false && strpos($v, 'camera') !== false) {
+							@++$stats['avatar'];
 							continue 2;
 						}
 					}
 					if ($filter['sex'] && @$user['sex'] != $filter['sex']) {
+						@++$stats['sex'];
 						continue;
 					}
 					++$base_filtered_count;
-					if ($filter['city'] && @$user['city'] != $filter['city']) {
+					if ($filter['city'] == -1 && @$user['city']) {
+						++$stats['city'];
+						continue;
+					} elseif ($filter['city'] && @$user['city'] != $filter['city']) {
+						++$stats['city'];
 						continue;
 					}
 					@list($d, $m, $y) = explode('.', @$user['bdate']);
 					$age = $y ? date('Y') - $y : 0;
 					$user['age'] = $age;
 					if ($filter['age_require'] && !$age) {
+						++$stats['age_require'];
 						continue;
 					}
 					if ($age && ($filter['age_min'] && $age < $filter['age_min'] || $filter['age_max'] && $age >= $filter['age_max'])) {
+						++$stats['age'];
 						continue;
 					}
 					if ($filter['online'] && !@$user['online']) {
+						++$stats['online'];
 						continue;
 					}
 					if ($filter['relations'] && !in_array(intval(@$user['relation']), $filter['relations'])) {
+						++$stats['relations'];
 						continue;
 					}
 					$filtered[] = $user;
@@ -201,16 +213,27 @@ function get_time_diff($time) {
 	return 'больше месяца';
 }
 
-function htmlspecialchars_recurcive($arr) {
+function htmlspecialchars_recursive($arr) {
 	foreach ($arr as $k => $v) {
 		if (is_array($v)) {
-			$arr[$k] = htmlspecialchars_recurcive($v);
+			$arr[$k] = htmlspecialchars_recursive($v);
 		} else {
 			$arr[$k] = is_bool($v) ? $v : htmlspecialchars($v);
 		}
 	}
 	return $arr;
 }
+
+$stats_legend = array(
+	'blacklisted' => 'В черном списке',
+	'avatar' => 'Нет аватара',
+	'sex' => 'Пол',
+	'city' => 'Город',
+	'age_require' => 'Не указан возраст',
+	'age' => 'Не подходит возраст',
+	'online' => 'Не онлайн',
+	'relations' => 'Не подходит по СП',
+);
 
 ?>
 <!DOCTYPE html>
@@ -308,7 +331,35 @@ if ($total_count) {
 	$count = count($filtered);
 	$sex_filter = $filter['sex'] ? ($filter['sex'] == 1 ? 'девушки' : 'парни') : 'прошли базовые проверки';
 	$sex_filter .= sprintf(': %d (%d%%), ', $base_filtered_count, $base_filtered_count / $total_count * 100);
-	printf('<hr /><p class="text-muted">Результаты для: <a href="%s" target="_blank">%s</a></p><p class="text-muted">Всего: %d, %sпосле фильтра: %d (%.2f%%)</p><hr />', htmlspecialchars($url), htmlspecialchars($url), $total_count, $sex_filter, $count, $base_filtered_count ? $count / $base_filtered_count * 100 : 0);
+	?>
+	<hr />
+	<p class="text-muted">Результаты для: <a href="<?=htmlspecialchars($url)?>" target="_blank"><?=htmlspecialchars($url)?></a></p>
+	<p class="text-muted">Всего: <?=$total_count?>, <?=$sex_filter?>: <?=($base_filtered_count.' ('.floor($base_filtered_count / $total_count * 100).'%)')?>, после фильтра: <?=($count.' ('.round($base_filtered_count ? $count / $base_filtered_count * 100 : 0, 2).'%)')?> - <a href="#" data-toggle="modal" data-target="#stats">статистика</a>.</p>
+	<div id="stats" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;  </button>
+					<h4 class="modal-title" id="myModalLabel">Статистика по фильтрам</h4>
+				</div>
+				<div class="modal-body">
+					<?
+					foreach ($stats_legend as $k => $title) {
+						if (!isset($stats[$k])) {
+							continue;
+						}
+						printf('<p>%s - <strong>%d</strong></p>', $title, $stats[$k]);
+					}
+					?>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Закрыть</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<hr />
+	<?
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
