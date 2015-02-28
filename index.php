@@ -62,7 +62,7 @@ $msg = '';
 $total_count = $base_filtered_count = 0;
 if ($url) {
 	try {
-		if (!preg_match('#^(https?://vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Link does not match regexp.');
+		if (!preg_match('#^(https?://vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Указана некорректная ссылка!');
 		list(,, $onpage, $param, $type, $owner_id, $item_id) = $match;
 		if ($type == 'album') {
 		} elseif ($type == 'wall') {
