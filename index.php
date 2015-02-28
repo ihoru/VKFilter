@@ -76,6 +76,7 @@ if ($url) {
 		do {
 			if ($type == 'album') {
 				$json = json_decode(file_get_contents(sprintf('%sphotos.get?owner_id=%d&album_id=%d&rev=1&extended=0&offset=%d&count=%d&version=%f', $base_url, $owner_id, $item_id, $offset, $count, $version)), true);
+				var_dump($json);exit;//TODO:i.polyakov:remove me
 				if (!$json || !$json['response']) continue;
 				foreach ($json['response'] as $item) {
 					if (!isset($item['user_id'])) {
@@ -315,5 +316,6 @@ if ($total_count) {
 }
 ?>
 </div>
+<a href="https://github.com/ihoru/VKFilter/fork" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
 </html>
