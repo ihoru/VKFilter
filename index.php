@@ -20,6 +20,7 @@ $filter_default = array(
 	'age_require' => false,
 	'online' => false,
 	'relations' => array(),
+	'height' => 300,
 );
 $url = isset($_REQUEST['url']) ? strval($_REQUEST['url']) : '';
 $debug = isset($_REQUEST['debug']);
@@ -43,6 +44,7 @@ foreach ($filter_default as $k => $v) {
 		$filter[$k] = max(0, min(2, $filter[$k]));
 	}
 }
+$filter['height'] = max(min($filter['height'], 2000), 100);
 setcookie('filter', json_encode($filter), strtotime('+1 month'));
 $filter = htmlspecialchars_recursive($filter);
 $cities = array(
@@ -61,6 +63,11 @@ $relations = array(
 	7 => 'влюблён(а)',
 	3 => 'помолвлен(а)',
 	4 => 'в браке',
+);
+$heights = array(
+	'100' => 'маленькие (100)',
+	'300' => 'средние (300)',
+	'600' => 'большие (600)',
 );
 
 $base_url = 'https://api.vk.com/method/';
@@ -337,6 +344,17 @@ $stats_legend = array(
 		<span id="loading" class="invisible glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
 	</button>
 	<button name="reset" class="btn btn-warning">Сбросить</button>
+	<div class="form-group">
+		<label for="frm_height">Размер:</label>
+		<select id="frm_height" name="filter[height]" class="form-control input-sm"><?
+			foreach ($heights as $h => $title) {
+				echo '<option value="'.$h.'"'.($h == $filter['height'] ? ' selected' : '').'>'.htmlspecialchars($title).'</option>'.PHP_EOL;
+			}
+			if ($filter['height'] && !isset($heights[$filter['height']])) {
+				echo '<option value="'.$filter['height'].'" selected>свой вариант ('.$filter['height'].')</option>'.PHP_EOL;
+			}
+		?></select>
+	</div>
 	<? if ($debug) { ?><input type="hidden" name="debug" /><? } ?>
 
 	</form>
@@ -375,15 +393,17 @@ if ($total_count) {
 		</div>
 	</div>
 	<hr />
+	<div class="items">
 	<?
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
-		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: 300px;" /></a>
+		<div class="item">
+		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: <?=$filter['height']?>px;" /></a>
 			<?
 			if ($type == 'album' && isset($photos[$uid])) {
 				foreach ($photos[$uid] as $photo) {
-					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank"><img src="<?=get_image($photo, false)?>" style="max-height: 300px;" /></a><?
+					?><a href="https://vk.com/photo<?=($photo['owner_id'].'_'.$photo['pid'])?>" target="_blank"><img src="<?=get_image($photo, false)?>" style="max-height: <?=$filter['height']?>px;" /></a><?
 				}
 			}
 			?>
@@ -391,13 +411,39 @@ if ($total_count) {
 		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' лет)' : '').($user['online'] ? ' - online' : ($user['last_seen'] && $user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '').(!$filter['sex'] ? ($user['sex'] == '1' ? ' - девушка' : ($user['sex'] == '2' ? ' - парень' : '')) : '')?>
 		<?=(@$user['status'] ? '<br />'.htmlspecialchars($user['status']) : '')?>
 		<hr />
+		</div>
 	<?
 	}
+	?>
+	</div>
+	<?
 }
 ?>
 </div>
+<img id="fullImage" src="about:blank" class="hide" />
 <a href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script>
+$(window).load(function() {
+	var fullImage = $('#fullImage');
+	$('.items img').mouseover(function(e) {
+		var el = $(e.currentTarget);
+		fullImage.attr('src', el.attr('src'));
+		fullImage.css({
+			top: (e.pageY - 200) + 'px',
+			left: (e.pageX + 30) + 'px'
+		});
+		fullImage.removeClass('hide');
+	}).mousemove(function(e) {
+		fullImage.css({
+			top: (e.pageY - 200) + 'px',
+			left: (e.pageX + 30) + 'px'
+		});
+	}).mouseout(function(e) {
+		fullImage.addClass('hide');
+	});
+});
+</script>
 </html>
