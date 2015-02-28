@@ -113,8 +113,8 @@ if ($url) {
 				if (!$json || !$json['response']) continue;
 				foreach ($json['response']['users'] as $uid) {
 					$user_ids[] = $uid;
+					++$total_count;
 				}
-				$total_count = $json['response']['count'];
 				$offset += $count;
 				if ($debug) {
 					continue;
@@ -124,6 +124,7 @@ if ($url) {
 		} while ($continue_loop);
 		if ($user_ids) {
 			$chunks = array_chunk($user_ids, 1000);
+			$total_count = 0;
 			foreach ($chunks as $user_ids) {
 				$data = [
 					'user_ids' => implode(',', $user_ids),
@@ -138,6 +139,7 @@ if ($url) {
 				$json_users = json_decode($data, true);
 				curl_close($ch);
 				$users = (array)$json_users['response'];
+				$total_count += count($users);
 				foreach ($users as $user) {
 					// banned
 					if (@$user['blacklisted']) {
@@ -283,7 +285,7 @@ $stats_legend = array(
 	<form id="filter_frm" class="form-inline" method="get" onsubmit="$('#loading').removeClass('invisible'); return true;">
 	<div class="form-group">
 		<label for="frm_url">URL:</label>
-		<input id="frm_url" name="url" class="form-control input-lg" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="100" autocomplete="off" placeholder="Введите URL ссылки" />
+		<input id="frm_url" name="url" class="form-control input-lg" value="<?=htmlspecialchars($url)?>"<? if(!$url) { ?> autofocus="true"<? } ?> required="true" size="60" autocomplete="off" placeholder="Введите URL ссылки" />
 	</div>
 	<br />
 	Возраст
