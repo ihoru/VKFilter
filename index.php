@@ -279,8 +279,8 @@ $stats_legend = array(
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
 	<link media="all" rel="stylesheet" href="static/css/common.css" />
 	<style>
-		.items .item {
-			max-height: <?=($filter['height'] + 114)?>px;
+		.items .item pre {
+			max-height: <?=($filter['height'] + 21)?>px;
 		}
 		#fullImage {
 			max-height: <?=$zoom_max_height?>px;
