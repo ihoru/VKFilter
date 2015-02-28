@@ -6,12 +6,12 @@
     "Ihor Polyakov <ihor.polyakov@gmail.com>"
   ],
   "description": "Filter people from VK.com",
-  "keywords": [
-    "vk",
-    "filter"
-  ],
+  "keywords": [],
   "license": "Apache License 2.0",
   "private": true,
+  "dependencies": {
+    "jquery-mousewheel": "~3.1.12"
+  },
   "ignore": [
     "**/.*",
     "node_modules",
