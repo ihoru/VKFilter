@@ -13,34 +13,37 @@ header('Content-type: text/html; charset=utf8');
  * ** https://vk.com/iwantyou?z=album-43776215_208738214
 */
 $filter_default = array(
-	'city' => 0,
-	'sex' => 0,
-	'age_min' => 0,
-	'age_max' => 0,
+	'city' => 1, // Москва
+	'sex' => 1, // девушки
+	'age_min' => 18,
+	'age_max' => 30,
 	'age_require' => false,
 	'online' => false,
 	'relations' => array(),
 );
 $url = isset($_REQUEST['url']) ? strval($_REQUEST['url']) : '';
 $debug = isset($_REQUEST['debug']);
-$_filter = isset($_REQUEST['filter']) && !isset($_REQUEST['reset']) ? $_REQUEST['filter'] : array();
-$filter = array_merge($filter_default, $_filter);
-if (!$_filter && !isset($_REQUEST['reset'])) {
-	$filter['city'] = 1; // Москва по умолчанию
-	$filter['sex'] = 1; // Девушки по умолчанию
+$reset = isset($_REQUEST['reset']);
+$filter = isset($_REQUEST['filter']) && !$reset ? (array)$_REQUEST['filter'] : array();
+if (!$reset) {
+	if (isset($_COOKIE['filter']) && !$filter) {
+		$filter = (array)json_decode($_COOKIE['filter']);
+	}
+	$filter = array_merge($filter_default, $filter);
 }
 foreach ($filter_default as $k => $v) {
 	if (is_numeric($v)) {
-		$filter[$k] = intval($filter[$k]);
+		$filter[$k] = isset($filter[$k]) ? intval($filter[$k]) : 0;
 	} elseif (is_bool($v)) {
-		$filter[$k] = (bool)($filter[$k]);
+		$filter[$k] = isset($filter[$k]) ? (bool)($filter[$k]) : false;
 	} elseif (is_array($v)) {
-		$filter[$k] = (array)($filter[$k]);
+		$filter[$k] = isset($filter[$k]) ? (array)($filter[$k]) : array();
 	}
 	if ($k == 'sex') {
 		$filter[$k] = max(0, min(2, $filter[$k]));
 	}
 }
+setcookie('filter', json_encode($filter), strtotime('+1 month'));
 $filter = htmlspecialchars_recursive($filter);
 $cities = array(
 	'0' => 'любой',
