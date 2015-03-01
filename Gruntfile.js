@@ -23,7 +23,8 @@ module.exports = function(grunt) {
     less: {
       static: {
         files: {
-          'static/css/common.css': 'less/common.less'
+          'static/css/common.css': 'less/common.less',
+          'static/css/mobile.css': 'less/mobile.less'
         }
       }
     }
