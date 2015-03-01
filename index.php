@@ -101,13 +101,18 @@ if ($url) {
 					@++$stats['error_photos_get'];
 					continue;
 				}
+				$exclude_users_incremented = array();
 				foreach ($json['response'] as $item) {
 					if (!isset($item['user_id'])) {
 						continue;
 					}
 					$uid = $item['user_id'];
 					if (in_array($uid, $exclude_users)) {
-						@++$stats['excluded_users'];
+						if (!in_array($uid, $exclude_users_incremented)) {
+							@++$stats['excluded_users'];
+						} else {
+							$exclude_users_incremented[] = $uid;
+						}
 						continue;
 					}
 					if (!in_array($uid, $user_ids)) {
