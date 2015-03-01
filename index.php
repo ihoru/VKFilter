@@ -110,8 +110,7 @@ if ($url) {
 					if (in_array($uid, $exclude_users)) {
 						if (!in_array($uid, $exclude_users_incremented)) {
 							@++$stats['excluded_users'];
-						} else {
-							$exclude_users_incremented[] = $uid;
+							$exclude_users_incremented[$uid] = $uid;
 						}
 						continue;
 					}
