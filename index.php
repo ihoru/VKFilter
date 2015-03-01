@@ -45,6 +45,7 @@ $filter['sex'] = max(0, min(2, $filter['sex']));
 $filter['height'] = max(min($filter['height'], 2000), 100);
 setcookie('filter', json_encode($filter), strtotime('+1 month'));
 $filter = htmlspecialchars_recursive($filter);
+$exclude_users = isset($_COOKIE['exclude_users']) ? array_unique(array_filter(array_map('intval', explode(',', $_COOKIE['exclude_users'])))) : array();
 $cities = array(
 	'0' => 'любой',
 	'-1' => 'не указано',
@@ -80,8 +81,8 @@ $msg = '';
 $total_count = $base_filtered_count = 0;
 if ($url) {
 	try {
-		if (!preg_match('#^(https?://vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Указана некорректная ссылка!');
-		list(,, $onpage, $param, $type, $owner_id, $item_id) = $match;
+		if (!preg_match('#^(https?://(m\.)?vk\.com/)?([\w\d_]+\?(z|w)=)?(wall|album)(-?[\d]+)_([\d]+)(\?rev=1)?$#i', $url, $match)) throw new Exception('Указана некорректная ссылка!');
+		list(,,, $onpage, $param, $type, $owner_id, $item_id) = $match;
 		if ($type == 'album') {
 		} elseif ($type == 'wall') {
 			$type = 'post';
@@ -105,6 +106,10 @@ if ($url) {
 						continue;
 					}
 					$uid = $item['user_id'];
+					if (in_array($uid, $exclude_users)) {
+						@++$stats['excluded_users'];
+						continue;
+					}
 					if (!in_array($uid, $user_ids)) {
 						$user_ids[] = $uid;
 						++$total_count;
@@ -126,6 +131,10 @@ if ($url) {
 					continue;
 				}
 				foreach ($json['response']['users'] as $uid) {
+					if (in_array($uid, $exclude_users)) {
+						@++$stats['excluded_users'];
+						continue;
+					}
 					$user_ids[] = $uid;
 					++$total_count;
 				}
@@ -158,7 +167,9 @@ if ($url) {
 					continue;
 				}
 				$total_count += count($users);
+				$uids = array();
 				foreach ($users as $user) {
+					$uids[] = $user['uid'];
 					// banned
 					if (@$user['blacklisted']) {
 						@++$stats['blacklisted'];
@@ -203,6 +214,10 @@ if ($url) {
 						continue;
 					}
 					$filtered[] = $user;
+				}
+				$users_not_found = array_diff($user_ids, $uids);
+				if ($users_not_found) {
+					@$stats['error_users_not_found'] += $users_not_found;
 				}
 			}
 		}
@@ -257,6 +272,8 @@ $stats_legend = array(
 	'error_photos_get' => 'Ошибка: получение списка фотографий',
 	'error_likes_get' => 'Ошибка: получение спика лайкнувших',
 	'error_users_get' => 'Ошибка: получение списка пользователей',
+	'error_users_not_found' => 'Ошибка: ВКонтакте не вернул пользователей',
+	'excluded_users' => 'Исключены из выдачи',
 	'blacklisted' => 'В черном списке',
 	'avatar' => 'Нет аватара',
 	'sex' => 'Пол',
@@ -277,8 +294,8 @@ $stats_legend = array(
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
-	<link media="all" rel="stylesheet" href="static/css/common.css" />
-	<link media="only screen and (max-width: 400px)" rel="stylesheet" href="static/css/mobile.css" />
+	<link media="all" rel="stylesheet" href="static/css/common.min.css" />
+	<link media="only screen and (max-width: 400px)" rel="stylesheet" href="static/css/mobile.min.css" />
 	<style>
 		.items .item pre {
 			max-height: <?=($filter['height'] + 21)?>px;
@@ -406,7 +423,12 @@ if ($stats) {
 						if (!isset($stats[$k])) {
 							continue;
 						}
-						printf('<p>%s - <strong>%d</strong></p>', $title, $stats[$k]);
+						if ($k == 'excluded_users') {
+							$add = ' (<a href="#" onclick="clearExcludedUsers(); return false;">очистить</a>)';
+						} else {
+							$add = '';
+						}
+						printf('<p>%s - <strong>%d</strong>%s</p>', $title, $stats[$k], $add);
 					}
 					?>
 				</div>
@@ -431,7 +453,7 @@ if ($total_count) {
 	foreach ($filtered as $user) {
 		$uid = $user['uid'];
 		?>
-		<div class="item">
+		<div class="item" id="user<?=$uid?>">
 		<pre><a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><img src="<?=get_image($user)?>" style="max-height: <?=$filter['height']?>px;" /></a><?
 			if ($type == 'album' && isset($photos[$uid])) {
 				foreach ($photos[$uid] as $photo) {
@@ -439,7 +461,8 @@ if ($total_count) {
 				}
 			}
 		?></pre><br />
-		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars($user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' лет)' : '').($user['online'] ? ' - online' : ($user['last_seen'] && $user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '').(!$filter['sex'] ? ($user['sex'] == '1' ? ' - девушка' : ($user['sex'] == '2' ? ' - парень' : '')) : '')?>
+		<a href="#" class="remove" title="Удалить из выдачи" onclick="removeUser('<?=$uid?>'); return false;"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>
+		<a href="https://vk.com/id<?=$uid?>" target="_blank" title="<?=htmlspecialchars(@$user['status'])?>"><?=(htmlspecialchars($user['first_name']).' '.htmlspecialchars($user['last_name']))?></a><?=($user['age'] ? ' ('.$user['age'].' лет)' : '').($user['online'] ? ' - online' : (@$user['last_seen'] && @$user['last_seen']['time'] ? ' - '.get_time_diff($user['last_seen']['time']) : '')).(isset($user['relation']) ? ' ('.$relations[intval($user['relation'])].')' : '').(!$filter['sex'] ? ($user['sex'] == '1' ? ' - девушка' : ($user['sex'] == '2' ? ' - парень' : '')) : '')?>
 		<?=(@$user['status'] ? '<br />'.htmlspecialchars($user['status']) : '')?>
 		<hr />
 		</div>
@@ -455,6 +478,7 @@ if ($total_count) {
 <a id="ribbon" href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="static/js/jquery.cookie.min.js"></script>
 <!--<script src="static/js/jquery.mousewheel.min.js"></script>-->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 <script>
@@ -496,5 +520,18 @@ $(window).load(function() {
 //		console.log(event.deltaX, event.deltaY, event.deltaFactor);
 //	});
 });
+function removeUser(uid) {
+	var exclude_users = $.cookie('exclude_users') || '';
+	exclude_users += ',' + uid;
+	$.cookie('exclude_users', exclude_users, {expires: 365});
+	$('#user' + uid).remove();
+}
+function clearExcludedUsers() {
+	var exclude_users = $.cookie('exclude_users') || '';
+	var count = exclude_users.split(',').length;
+	if (confirm('Вы уверены, что хотите очистить список пользователей, которые не появляются в выдаче (их около ' + count + ' шт)?')) {
+		$.removeCookie('exclude_users');
+	}
+}
 </script>
 </html>
