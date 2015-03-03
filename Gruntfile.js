@@ -26,6 +26,18 @@ module.exports = function(grunt) {
             cwd: 'bower_components/jquery-cookie/',
             src: ['jquery.cookie.js'],
             dest: '<%= cfg.static %>js/'
+          },
+          {
+            expand: true,
+            cwd: 'bower_components/sweetalert/lib/',
+            src: ['sweet-alert.css'],
+            dest: '<%= cfg.static %>css/'
+          },
+          {
+            expand: true,
+            cwd: 'bower_components/sweetalert/lib/',
+            src: ['sweet-alert.min.js'],
+            dest: '<%= cfg.static %>js/'
           }
         ]
       }

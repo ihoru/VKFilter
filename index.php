@@ -300,6 +300,7 @@ $stats_legend = array(
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
 	<link media="all" rel="stylesheet" href="static/css/common.min.css" />
 	<link media="only screen and (max-width: 400px)" rel="stylesheet" href="static/css/mobile.min.css" />
+	<link rel="stylesheet" type="text/css" href="static/css/sweet-alert.css" />
 	<style>
 		.items .item pre {
 			max-height: <?=($filter['height'] + 21)?>px;
@@ -485,6 +486,7 @@ if ($total_count) {
 <script src="static/js/jquery.cookie.min.js"></script>
 <!--<script src="static/js/jquery.mousewheel.min.js"></script>-->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script src="static/js/sweet-alert.min.js"></script>
 <script>
 $(window).load(function() {
 	<? if ($filter['height'] < $zoom_max_height) { ?>
@@ -533,9 +535,22 @@ function removeUser(uid) {
 function clearExcludedUsers() {
 	var exclude_users = $.cookie('exclude_users') || '';
 	var count = exclude_users.split(',').length;
-	if (confirm('Вы уверены, что хотите очистить список пользователей, которые не появляются в выдаче (их около ' + count + ' шт)?')) {
-		$.removeCookie('exclude_users');
-	}
+	swal({
+		title: 'Вы уверены?',
+		text: 'Хотите очистить список пользователей, которые не появляются в выдаче (их около ' + count + ' шт)?',
+		type: 'warning',
+		showCancelButton: true,
+		confirmButtonColor: '#DD6B55',
+		confirmButtonText: 'Да, очистить!',
+		cancelButtonText: 'Нет!',
+		closeOnConfirm: false,
+		closeOnCancel: true
+	}, function(isConfirm) {
+		if (isConfirm) {
+			$.removeCookie('exclude_users');
+			swal('Очищено', 'Чтобы изменения были применены обновите страницу.', 'success');
+		}
+	});
 }
 </script>
 </html>
