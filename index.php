@@ -221,7 +221,7 @@ if ($url) {
 				}
 				$users_not_found = array_diff($user_ids, $uids);
 				if ($users_not_found) {
-					@$stats['error_users_not_found'] += $users_not_found;
+					@$stats['error_users_not_found'] += count($users_not_found);
 				}
 			}
 		}
