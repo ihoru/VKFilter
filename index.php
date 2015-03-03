@@ -479,7 +479,7 @@ if ($total_count) {
 }
 ?>
 </div>
-<img id="fullImage" src="about:blank" class="hide" />
+<img id="fullImage" class="hide" />
 <a id="ribbon" href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
@@ -488,7 +488,7 @@ if ($total_count) {
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 <script src="static/js/sweet-alert.min.js"></script>
 <script>
-$(window).load(function() {
+$(document).ready(function() {
 	<? if ($filter['height'] < $zoom_max_height) { ?>
 	var fullImage = $('#fullImage');
 	var calcNewPos = function(e, width, height) {
