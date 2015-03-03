@@ -146,7 +146,7 @@ if ($url) {
 				if ($debug) {
 					continue;
 				}
-				$continue_loop = $total_count > $offset;
+				$continue_loop = $total_count >= $offset;
 			}
 		} while ($continue_loop);
 		if ($user_ids) {
