@@ -385,13 +385,13 @@ $stats_legend = array(
 	}
 	?>
 	<br />
-	<button class="btn btn-success">
+	<button class="btn btn-success" type="submit">
 		Поиск
 		<span id="loading" class="invisible glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>
 	</button>
-	<button name="reset" class="btn btn-warning">Сбросить</button>
+	<button name="reset" class="btn btn-warning" type="submit">Сбросить</button>
 	<div class="form-group">
-		<label for="frm_height">Размер:</label>
+		<label for="frm_height">Размер фотографии:</label>
 		<select id="frm_height" name="filter[height]" class="form-control input-sm"><?
 			foreach ($heights as $h => $title) {
 				echo '<option value="'.$h.'"'.($h == $filter['height'] ? ' selected' : '').'>'.htmlspecialchars($title).'</option>'.PHP_EOL;
@@ -480,7 +480,7 @@ if ($total_count) {
 ?>
 </div>
 <img id="fullImage" class="hide" />
-<a id="ribbon" href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" /></a>
+<a id="ribbon" href="https://github.com/ihoru/VKFilter" target="_blank" title="Внести свой вклад в развитие проекта (откроется в новом окне)"><img style="position: absolute; top: 0; right: 0; border: 0;" src="static/img/fork_me.png" alt="Fork me on GitHub" /></a>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
 <script src="static/js/jquery.cookie.min.js"></script>

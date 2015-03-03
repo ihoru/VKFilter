@@ -17,26 +17,32 @@ module.exports = function(grunt) {
         files: [
           {
             expand: true,
+            cwd: 'img/',
+            src: '**',
+            dest: '<%= cfg.static %>img/'
+          },
+          {
+            expand: true,
             cwd: 'bower_components/jquery-mousewheel/',
-            src: ['jquery.mousewheel.min.js'],
+            src: 'jquery.mousewheel.min.js',
             dest: '<%= cfg.static %>js/'
           },
           {
             expand: true,
             cwd: 'bower_components/jquery-cookie/',
-            src: ['jquery.cookie.js'],
+            src: 'jquery.cookie.js',
             dest: '<%= cfg.static %>js/'
           },
           {
             expand: true,
             cwd: 'bower_components/sweetalert/lib/',
-            src: ['sweet-alert.css'],
+            src: 'sweet-alert.css',
             dest: '<%= cfg.static %>css/'
           },
           {
             expand: true,
             cwd: 'bower_components/sweetalert/lib/',
-            src: ['sweet-alert.min.js'],
+            src: 'sweet-alert.min.js',
             dest: '<%= cfg.static %>js/'
           }
         ]
