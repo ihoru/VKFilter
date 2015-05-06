@@ -1,5 +1,9 @@
 <?
 
+if (!file_exists('config.php')) {
+	die('Create config.php!');
+}
+require_once('config.php');
 header('Content-type: text/html; charset=utf8');
 /*
  * Список поддерживаемых ссылок:
@@ -73,7 +77,22 @@ $zoom_max_height = 900;
 $zoom_max_width = 900;
 
 $base_url = 'https://api.vk.com/method/';
-$version = '5.28';
+$version = '5.30';
+
+$access_token = false;
+if (isset($_COOKIE['vk_app_'.VK_APP_ID])) {
+	$parts = array();
+	parse_str($_COOKIE['vk_app_'.VK_APP_ID], $parts);
+	if ($parts && $parts['sid']) {
+		$access_token = $parts['sid'];
+	}
+}
+
+if ($access_token) {
+//	$code = 'var a = 1;
+//return a;';
+//	$json = json_decode(file_get_contents(sprintf('%sexecute?code=%s&access_token=%s&version=%.2f', $base_url, urlencode($code), $access_token, $version)), true);
+}
 
 $filtered = $stats = array();
 $type = $error = false;
@@ -272,6 +291,14 @@ function htmlspecialchars_recursive($arr) {
 	return $arr;
 }
 
+function file_url($filename) {
+	if (!file_exists($filename)) {
+		return $filename;
+	}
+	$mtime = filemtime($filename);
+	return $filename.'?t='.$mtime;
+}
+
 $stats_legend = array(
 	'error_photos_get' => 'Ошибка: получение списка фотографий',
 	'error_likes_get' => 'Ошибка: получение спика лайкнувших',
@@ -298,8 +325,8 @@ $stats_legend = array(
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css" />
-	<link media="all" rel="stylesheet" href="static/css/common.min.css" />
-	<link media="only screen and (max-width: 400px)" rel="stylesheet" href="static/css/mobile.min.css" />
+	<link media="all" rel="stylesheet" href="<?=file_url('static/css/common.min.css')?>" />
+	<link media="only screen and (max-width: 400px)" rel="stylesheet" href="<?=file_url('static/css/mobile.min.css')?>" />
 	<link rel="stylesheet" type="text/css" href="static/css/sweet-alert.css" />
 	<style>
 		.items .item pre {
@@ -317,11 +344,20 @@ $stats_legend = array(
 <nav class="navbar navbar-inverse">
 	<a class="navbar-brand" href="?" title="На главную">VKFilter - фильтр пользователей соц сети VK.com</a>
 	<a class="navbar-brand hide" href="?page=howto">Как пользоваться?</a>
+	<div id="login_button_main" class="navbar-brand hide" onclick="VK.Auth.login(authInfo);"></div>
+	<div id="current_vk_auth" class="navbar-brand hide">
+		<a class="user" href="#" target="_blank"></a>
+		<small>(<a class="exit" href="#">выход</a>)</small>
+	</div>
 </nav>
 
-<div id="firstVisitBlock" class="alert alert-info hide" role="info">
+<div id="first_visit_block" class="alert alert-info hide" role="info">
 	<button type="button" class="close" data-dismiss="info" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
 	<strong>Короткое описание проекта!</strong>
+	<div id="first_visit_vk_auth">
+		<p>Для того, чтобы ускорить загрузку страницы с результатами работы фильтра и открыть для себя дополнительные возможности пройдите авторизацию через свой профайл ВКонтакте!</p>
+		<div id="login_button_first_visit" onclick="VK.Auth.login(authInfo);"></div>
+	</div>
 </div>
 
 <? if ($debug) { ?>
@@ -486,6 +522,7 @@ if ($total_count) {
 <script src="static/js/jquery.cookie.min.js"></script>
 <!--<script src="static/js/jquery.mousewheel.min.js"></script>-->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+<script src="//vk.com/js/api/openapi.js" type="text/javascript"></script>
 <script src="static/js/sweet-alert.min.js"></script>
 <script>
 $(document).ready(function() {
@@ -525,7 +562,49 @@ $(document).ready(function() {
 //	$('.items .item pre').mousewheel(function(event) {
 //		console.log(event.deltaX, event.deltaY, event.deltaFactor);
 //	});
+	var firstVisit = $('#first_visit_block');
+	var loginMainBtn = $('#login_button_main');
+	firstVisit.find('.close').on('click', function (e) {
+		firstVisit.addClass('hide');
+		loginMainBtn.removeClass('hide');
+		$.cookie('first_visit', 1, {expires: 30});
+	});
+	if ($.cookie('first_visit')) {
+		firstVisit.addClass('hide');
+		loginMainBtn.removeClass('hide');
+	} else {
+		firstVisit.removeClass('hide');
+		loginMainBtn.addClass('hide');
+	}
 });
+function authInfo(response) {
+	console.log('authInfo: ', response);
+	if (response.session) {
+		VK.api('users.get', {}, function (data) {
+			var user = data.response[0];
+			if (!user) {
+				return;
+			}
+			$('#first_visit_vk_auth').addClass('hide');
+			var vkAuth = $('#current_vk_auth');
+			vkAuth.find('.user').attr('href', 'https://vk.com/id' + user.uid).text(user.first_name + ' ' + user.last_name);
+			vkAuth.find('.exit').off().on('click', function () {
+				VK.Auth.logout();
+				document.location.reload(true);
+				return false;
+			});
+			vkAuth.addClass('show');
+		});
+	} else {
+		VK.UI.button('login_button_first_visit');
+		VK.UI.button('login_button_main');
+	}
+}
+VK.init({
+	apiId: <?=VK_APP_ID?>
+});
+VK.Auth.getLoginStatus(authInfo);
+
 function removeUser(uid) {
 	var exclude_users = $.cookie('exclude_users') || '';
 	exclude_users += ',' + uid;

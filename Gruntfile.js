@@ -56,12 +56,6 @@ module.exports = function(grunt) {
         }
       }
     },
-//    concat: {
-//      dist: {
-//        src: ['lib/<%= pkg.name %>.js'],
-//        dest: 'dist/<%= pkg.name %>.js'
-//      }
-//    },
     uglify: {
       cookie: {
         src: 'bower_components/jquery-cookie/jquery.cookie.js',
@@ -69,7 +63,7 @@ module.exports = function(grunt) {
       }
     },
     cssmin: {
-      target: {
+      all: {
         files: [{
           expand: true,
           cwd: '<%= cfg.static %>css',
