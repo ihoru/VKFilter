@@ -26,10 +26,10 @@ $filter_default = array(
 	'relations' => array(),
 	'height' => 300,
 );
-$url = isset($_REQUEST['url']) ? strval($_REQUEST['url']) : '';
-$debug = isset($_REQUEST['debug']);
-$reset = isset($_REQUEST['reset']);
-$filter = isset($_REQUEST['filter']) && !$reset ? (array)$_REQUEST['filter'] : array();
+$url = isset($_GET['url']) ? strval($_GET['url']) : '';
+$debug = isset($_GET['debug']);
+$reset = isset($_GET['reset']);
+$filter = isset($_GET['filter']) && !$reset ? (array)$_GET['filter'] : array();
 if (!$reset) {
 	if (isset($_COOKIE['filter']) && !$filter) {
 		$filter = (array)json_decode($_COOKIE['filter']);
