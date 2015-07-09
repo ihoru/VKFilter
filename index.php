@@ -578,7 +578,7 @@ $(document).ready(function() {
 	}
 });
 function authInfo(response) {
-	console.log('authInfo: ', response);
+	//console.log('authInfo: ', response);
 	if (response.session) {
 		VK.api('users.get', {}, function (data) {
 			var user = data.response[0];
